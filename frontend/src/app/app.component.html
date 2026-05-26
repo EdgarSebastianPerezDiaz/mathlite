@@ -1,0 +1,240 @@
+<main class="shell">
+  <!-- ── Hero ─────────────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div>
+      <p class="eyebrow">MathLite</p>
+      <h1>Analizador de expresiones y sentencias matemáticas</h1>
+    </div>
+    <div class="status-card" [class.ready]="response?.ok" [class.error]="response && !response.ok">
+      <span class="status-label">Estado</span>
+      <strong>{{ statusLabel }}</strong>
+      <small>{{ statusSub }}</small>
+      <div class="status-pills" *ngIf="response">
+        <span class="pill pill-lex" [class.active]="lexerParserErrors.length === 0">
+          Léxico/Sint. {{ lexerParserErrors.length === 0 ? '✓' : lexerParserErrors.length }}
+        </span>
+        <span class="pill pill-sem" [class.active]="semanticErrors.length === 0">
+          Semántico {{ semanticErrors.length === 0 ? '✓' : semanticErrors.length }}
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Workspace ─────────────────────────────────────────────────────── -->
+  <section class="workspace">
+
+    <!-- Editor -->
+    <article class="panel editor-panel">
+      <header>
+        <h2>Editor de código</h2>
+        <div class="actions">
+          <button type="button" class="ghost" id="btn-load-example" (click)="loadExample()">Cargar ejemplo</button>
+          <button type="button" class="ghost" id="btn-clear" (click)="clear()">Limpiar</button>
+          <button type="button" class="primary" id="btn-analyze" (click)="analyze()" [disabled]="loading">
+            {{ loading ? 'Analizando…' : 'Analizar' }}
+          </button>
+        </div>
+      </header>
+
+      <textarea
+        [(ngModel)]="source"
+        spellcheck="false"
+        autocomplete="off"
+        autocapitalize="off"
+        class="editor"
+        id="code-editor"
+        placeholder="Escribe código MathLite aquí…"
+      ></textarea>
+
+      <p class="hint">
+        El lenguaje admite: variables (<code>let</code>), funciones (<code>def</code>),
+        condicionales (<code>if/else</code>), ciclos (<code>while</code>), impresión
+        (<code>print</code>) y funciones matemáticas integradas
+        (<code>sin, cos, sqrt, log, abs…</code>).
+      </p>
+      <p class="transport-error" *ngIf="transportError">{{ transportError }}</p>
+    </article>
+
+    <!-- Panel de resultados con pestañas -->
+    <article class="panel results-panel">
+      <!-- Pestañas -->
+      <nav class="tabs" role="tablist">
+        <button
+          id="tab-tokens"
+          role="tab"
+          class="tab-btn"
+          [class.active]="activeTab === 'tokens'"
+          (click)="setTab('tokens')"
+        >
+          Tokens
+          <span class="tab-badge">{{ tokens.length }}</span>
+        </button>
+        <button
+          id="tab-diagnostics"
+          role="tab"
+          class="tab-btn"
+          [class.active]="activeTab === 'diagnostics'"
+          (click)="setTab('diagnostics')"
+        >
+          Léxico/Sint.
+          <span class="tab-badge" [class.danger]="lexerParserErrors.length > 0">{{ lexerParserErrors.length }}</span>
+        </button>
+        <button
+          id="tab-semantic"
+          role="tab"
+          class="tab-btn"
+          [class.active]="activeTab === 'semantic'"
+          (click)="setTab('semantic')"
+        >
+          Semántico
+          <span class="tab-badge" [class.danger]="semanticErrors.length > 0">{{ semanticErrors.length }}</span>
+        </button>
+        <button
+          id="tab-symbols"
+          role="tab"
+          class="tab-btn"
+          [class.active]="activeTab === 'symbols'"
+          (click)="setTab('symbols')"
+        >
+          Símbolos
+          <span class="tab-badge">{{ symbolVars.length + symbolFuncs.length }}</span>
+        </button>
+        <button
+          id="tab-ast"
+          role="tab"
+          class="tab-btn"
+          [class.active]="activeTab === 'ast'"
+          (click)="setTab('ast')"
+        >
+          AST
+        </button>
+      </nav>
+
+      <!-- ── Tab: Tokens ──────────────────────────────────────────────── -->
+      <div *ngIf="activeTab === 'tokens'" class="tab-content" role="tabpanel" id="panel-tokens">
+        <div class="table-wrap" *ngIf="tokens.length; else emptyTokens">
+          <table>
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Lexema</th>
+                <th>Línea</th>
+                <th>Col.</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let token of tokens">
+                <td><span class="token-type">{{ token.type }}</span></td>
+                <td><code>{{ token.lexeme }}</code></td>
+                <td>{{ token.line }}</td>
+                <td>{{ token.column }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #emptyTokens>
+          <p class="empty">Aún no hay tokens. Escribe código y presiona <strong>Analizar</strong>.</p>
+        </ng-template>
+      </div>
+
+      <!-- ── Tab: Léxico/Sintáctico ───────────────────────────────────── -->
+      <div *ngIf="activeTab === 'diagnostics'" class="tab-content" role="tabpanel" id="panel-diagnostics">
+        <div *ngIf="lexerParserErrors.length; else emptyDiag" class="diagnostics-list">
+          <div class="diagnostic" *ngFor="let item of lexerParserErrors">
+            <strong>Línea {{ item.line }}, columna {{ item.column }}</strong>
+            <p>{{ item.message }}</p>
+          </div>
+        </div>
+        <ng-template #emptyDiag>
+          <p class="empty success">Sin errores léxicos ni sintácticos ✓</p>
+        </ng-template>
+      </div>
+
+      <!-- ── Tab: Semántico ───────────────────────────────────────────── -->
+      <div *ngIf="activeTab === 'semantic'" class="tab-content" role="tabpanel" id="panel-semantic">
+        <div *ngIf="semanticErrors.length; else emptySemantics" class="diagnostics-list">
+          <div class="diagnostic semantic-error" *ngFor="let err of semanticErrors">
+            <div class="sem-header">
+              <span class="sem-code" [style.background]="badgeColor(err.code)">{{ err.code }}</span>
+              <strong>Línea {{ err.line }}</strong>
+            </div>
+            <p>{{ err.message }}</p>
+          </div>
+        </div>
+        <ng-template #emptySemantics>
+          <p class="empty success" *ngIf="response; else notAnalyzedYet">Sin errores semánticos ✓</p>
+          <ng-template #notAnalyzedYet>
+            <p class="empty">El análisis semántico aparecerá aquí después de presionar <strong>Analizar</strong>.</p>
+          </ng-template>
+        </ng-template>
+
+        <!-- Leyenda de categorías -->
+        <details class="legend" *ngIf="response">
+          <summary>Categorías de error semántico</summary>
+          <ul class="legend-list">
+            <li><span class="sem-code" [style.background]="badgeColor('SE001')">SE001</span> Variable no declarada</li>
+            <li><span class="sem-code" [style.background]="badgeColor('SE002')">SE002</span> Redeclaración en mismo alcance</li>
+            <li><span class="sem-code" [style.background]="badgeColor('SE003')">SE003</span> Función no definida</li>
+            <li><span class="sem-code" [style.background]="badgeColor('SE004')">SE004</span> Aridad incorrecta</li>
+            <li><span class="sem-code" [style.background]="badgeColor('SE005')">SE005</span> Tipos incompatibles</li>
+            <li><span class="sem-code" [style.background]="badgeColor('SE006')">SE006</span> Return fuera de función</li>
+            <li><span class="sem-code" [style.background]="badgeColor('SE007')">SE007</span> Operador lógico sobre no-Bool</li>
+            <li><span class="sem-code" [style.background]="badgeColor('SE008')">SE008</span> Condición no booleana</li>
+          </ul>
+        </details>
+      </div>
+
+      <!-- ── Tab: Tabla de Símbolos ───────────────────────────────────── -->
+      <div *ngIf="activeTab === 'symbols'" class="tab-content" role="tabpanel" id="panel-symbols">
+        <ng-container *ngIf="response; else noSymbols">
+
+          <h3 class="sym-heading">Variables globales</h3>
+          <div class="table-wrap" *ngIf="symbolVars.length; else noVars">
+            <table>
+              <thead>
+                <tr><th>Nombre</th><th>Tipo inferido</th><th>Línea</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let v of symbolVars">
+                  <td><code>{{ v.name }}</code></td>
+                  <td><span class="type-badge">{{ v.type }}</span></td>
+                  <td>{{ v.line }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #noVars><p class="empty">Sin variables globales.</p></ng-template>
+
+          <h3 class="sym-heading">Funciones definidas</h3>
+          <div class="table-wrap" *ngIf="symbolFuncs.length; else noFuncs">
+            <table>
+              <thead>
+                <tr><th>Nombre</th><th>Parámetros</th><th>Línea</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let f of symbolFuncs">
+                  <td><code>{{ f.name }}</code></td>
+                  <td><code>{{ f.params.join(', ') || '—' }}</code></td>
+                  <td>{{ f.line }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #noFuncs><p class="empty">Sin funciones definidas.</p></ng-template>
+        </ng-container>
+        <ng-template #noSymbols>
+          <p class="empty">La tabla de símbolos aparecerá tras el análisis.</p>
+        </ng-template>
+      </div>
+
+      <!-- ── Tab: AST ─────────────────────────────────────────────────── -->
+      <div *ngIf="activeTab === 'ast'" class="tab-content" role="tabpanel" id="panel-ast">
+        <pre *ngIf="astText; else emptyAst" class="ast-view">{{ astText }}</pre>
+        <ng-template #emptyAst>
+          <p class="empty">El AST aparecerá aquí después del análisis.</p>
+        </ng-template>
+      </div>
+
+    </article>
+  </section>
+</main>
