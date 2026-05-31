@@ -5,6 +5,7 @@ from dataclasses import asdict
 from .lexer import Lexer, Token
 from .parser import Parser, ast_to_text, node_to_dict
 from .semantic import analyze_semantics
+from .interpreter import interpret_program
 
 
 def analyze_source(source: str) -> dict:
@@ -39,6 +40,14 @@ def analyze_source(source: str) -> dict:
 
     ok = not lexer_errors and not parser.errors and not semantic_errors
 
+    # ── Fase 5: Interpretación (solo si el programa es válido) ────────────
+    output: list[str] = []
+    runtime_errors: list[dict] = []
+    if ok:
+        execution = interpret_program(program)
+        output = execution["output"]
+        runtime_errors = execution["runtime_errors"]
+
     return {
         "tokens": [token_to_dict(token) for token in tokens if token.type != "EOF"],
         "lexer_errors": [asdict(error) for error in lexer_errors],
@@ -50,7 +59,9 @@ def analyze_source(source: str) -> dict:
             "variables": global_vars,
             "functions": functions,
         },
-        "ok": ok,
+        "output": output,
+        "runtime_errors": runtime_errors,
+        "ok": ok and not runtime_errors,
     }
 
 

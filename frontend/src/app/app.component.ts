@@ -6,6 +6,7 @@ import { MathliteApiService } from './mathlite-api.service';
 import {
   AnalyzeResponse,
   DiagnosticDto,
+  RuntimeErrorDto,
   SemanticErrorDto,
   SymbolFuncDto,
   SymbolVarDto,
@@ -44,7 +45,7 @@ export class AppComponent {
   transportError = '';
 
   /** Panel activo en la sección de resultados */
-  activeTab: 'tokens' | 'diagnostics' | 'semantic' | 'symbols' | 'ast' = 'tokens';
+  activeTab: 'tokens' | 'output' | 'diagnostics' | 'semantic' | 'symbols' | 'ast' = 'tokens';
 
   constructor(private readonly api: MathliteApiService) {}
 
@@ -57,13 +58,14 @@ export class AppComponent {
       .subscribe({
         next: (response) => {
           this.response = response;
-          // Si hay errores semánticos, navegar a esa pestaña automáticamente
+          // Navegar a la pestaña más relevante según el resultado
           if (response.semantic_errors?.length) {
             this.activeTab = 'semantic';
           } else if (response.lexer_errors?.length || response.parser_errors?.length) {
             this.activeTab = 'diagnostics';
           } else {
-            this.activeTab = 'tokens';
+            // Programa válido: mostrar la salida de la ejecución
+            this.activeTab = 'output';
           }
         },
         error: (error) => {
@@ -83,7 +85,7 @@ export class AppComponent {
     this.transportError = '';
   }
 
-  setTab(tab: 'tokens' | 'diagnostics' | 'semantic' | 'symbols' | 'ast'): void {
+  setTab(tab: 'tokens' | 'output' | 'diagnostics' | 'semantic' | 'symbols' | 'ast'): void {
     this.activeTab = tab;
   }
 
@@ -114,6 +116,18 @@ export class AppComponent {
 
   get astText(): string {
     return this.response?.ast_text ?? '';
+  }
+
+  get output(): string[] {
+    return this.response?.output ?? [];
+  }
+
+  get outputText(): string {
+    return (this.response?.output ?? []).join('\n');
+  }
+
+  get runtimeErrors(): RuntimeErrorDto[] {
+    return this.response?.runtime_errors ?? [];
   }
 
   get totalErrors(): number {

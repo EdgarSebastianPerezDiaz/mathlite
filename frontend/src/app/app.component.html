@@ -70,6 +70,18 @@
           <span class="tab-badge">{{ tokens.length }}</span>
         </button>
         <button
+          id="tab-output"
+          role="tab"
+          class="tab-btn"
+          [class.active]="activeTab === 'output'"
+          (click)="setTab('output')"
+        >
+          Salida
+          <span class="tab-badge" [class.danger]="runtimeErrors.length > 0">
+            {{ runtimeErrors.length > 0 ? runtimeErrors.length : output.length }}
+          </span>
+        </button>
+        <button
           id="tab-diagnostics"
           role="tab"
           class="tab-btn"
@@ -134,6 +146,29 @@
         </div>
         <ng-template #emptyTokens>
           <p class="empty">Aún no hay tokens. Escribe código y presiona <strong>Analizar</strong>.</p>
+        </ng-template>
+      </div>
+
+      <!-- ── Tab: Salida (ejecución) ───────────────────────────────────── -->
+      <div *ngIf="activeTab === 'output'" class="tab-content" role="tabpanel" id="panel-output">
+        <!-- Errores en tiempo de ejecución -->
+        <div *ngIf="runtimeErrors.length" class="diagnostics-list" style="margin-bottom:16px">
+          <div class="diagnostic semantic-error has-err" *ngFor="let err of runtimeErrors">
+            <div class="sem-header">
+              <span class="sem-code" [style.background]="badgeColor(err.code)">{{ err.code }}</span>
+              <strong>Línea {{ err.line }}</strong>
+            </div>
+            <p>{{ err.message }}</p>
+          </div>
+        </div>
+
+        <!-- Salida de print -->
+        <pre *ngIf="output.length; else emptyOutput" class="ast-view">{{ outputText }}</pre>
+        <ng-template #emptyOutput>
+          <p class="empty" *ngIf="!runtimeErrors.length">
+            <span *ngIf="response; else outputNotYet">El programa no produjo salida (sin <code>print</code>).</span>
+            <ng-template #outputNotYet>La salida del programa aparecerá aquí tras presionar <strong>Analizar</strong>.</ng-template>
+          </p>
         </ng-template>
       </div>
 

@@ -18,6 +18,12 @@ export interface SemanticErrorDto {
   line: number;
 }
 
+export interface RuntimeErrorDto {
+  code: string;
+  message: string;
+  line: number;
+}
+
 export interface SymbolVarDto {
   name: string;
   type: string;
@@ -43,5 +49,7 @@ export interface AnalyzeResponse {
   ast: unknown;
   ast_text: string;
   symbol_table: SymbolTableDto;
+  output: string[];
+  runtime_errors: RuntimeErrorDto[];
   ok: boolean;
 }

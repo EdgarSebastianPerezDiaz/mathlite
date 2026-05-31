@@ -11,10 +11,17 @@ class LexError:
 
 
 @dataclass(slots=True)
-class ParseError:
+class ParseError(Exception):
+    """Error sintáctico. Es a la vez dataclass (para serializar con asdict)
+    y excepción (para poder lanzarse y atraparse en el parser)."""
+
     message: str
     line: int
     column: int
+
+    def __post_init__(self) -> None:
+        # Inicializa la parte Exception para que el mensaje sea legible.
+        Exception.__init__(self, self.message)
 
 
 @dataclass(slots=True)

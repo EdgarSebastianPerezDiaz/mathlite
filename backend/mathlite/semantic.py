@@ -267,23 +267,11 @@ class SemanticAnalyzer:
         already_declared = self.symbols.lookup_variable(node.name)
 
         if already_declared is not None:
-            # --- SE002: redeclaración en el mismo alcance ---
-            # Determinar alcance actual para comparar
-            current_scope = (
-                self.symbols._locals
-                if self.symbols._locals is not None
-                else self.symbols._globals
-            )
-            if node.name in current_scope:
-                self._error(
-                    "SE002",
-                    f"La variable '{node.name}' ya fue declarada en este alcance "
-                    f"(línea {already_declared.line}). Usa una asignación simple.",
-                    node.line,
-                )
-            else:
-                # Reasignación desde alcance externo: permitida, actualiza tipo
-                self.symbols.update_variable_type(node.name, value_type)
+            # 'let' actúa como declarar-o-reasignar: si la variable ya existe
+            # (en este alcance o en uno externo) se actualiza su tipo inferido.
+            # Esto permite patrones como 'let i = i + 1' dentro de un while,
+            # coherente con los programas de ejemplo del informe.
+            self.symbols.update_variable_type(node.name, value_type)
         else:
             self.symbols.declare_variable(node.name, value_type, node.line)
 
