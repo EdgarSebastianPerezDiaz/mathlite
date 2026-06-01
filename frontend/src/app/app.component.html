@@ -28,7 +28,15 @@
       <header>
         <h2>Editor de código</h2>
         <div class="actions">
-          <button type="button" class="ghost" id="btn-load-example" (click)="loadExample()">Cargar ejemplo</button>
+          <select
+            class="example-select"
+            id="example-select"
+            [(ngModel)]="selectedExampleId"
+            (ngModelChange)="loadSelectedExample()"
+          >
+            <option value="" disabled selected>Cargar ejemplo…</option>
+            <option *ngFor="let ex of examples" [value]="ex.id">{{ ex.label }}</option>
+          </select>
           <button type="button" class="ghost" id="btn-clear" (click)="clear()">Limpiar</button>
           <button type="button" class="primary" id="btn-analyze" (click)="analyze()" [disabled]="loading">
             {{ loading ? 'Analizando…' : 'Analizar' }}
@@ -163,7 +171,7 @@
         </div>
 
         <!-- Salida de print -->
-        <pre *ngIf="output.length; else emptyOutput" class="ast-view">{{ outputText }}</pre>
+        <pre *ngIf="output.length; else emptyOutput" class="ast-view">{{ output.join('\n') }}</pre>
         <ng-template #emptyOutput>
           <p class="empty" *ngIf="!runtimeErrors.length">
             <span *ngIf="response; else outputNotYet">El programa no produjo salida (sin <code>print</code>).</span>

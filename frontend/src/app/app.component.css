@@ -539,3 +539,34 @@ td code {
     font-size: 0.75rem;
   }
 }
+
+/* ── Desplegable de ejemplos ───────────────────────────────────────── */
+.example-select {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: transparent;
+  color: var(--muted);
+  transition: border-color 150ms, color 150ms;
+  max-width: 260px;
+}
+
+.example-select:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+.example-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.example-select option {
+  background: var(--bg-elevated);
+  color: var(--text);
+}

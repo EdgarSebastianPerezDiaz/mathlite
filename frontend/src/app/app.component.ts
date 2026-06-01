@@ -3,6 +3,7 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { MathliteApiService } from './mathlite-api.service';
+import { EXAMPLES, Example } from './examples';
 import {
   AnalyzeResponse,
   DiagnosticDto,
@@ -44,6 +45,11 @@ export class AppComponent {
   response: AnalyzeResponse | null = null;
   transportError = '';
 
+  /** Catálogo de los 25 casos de prueba disponibles como ejemplos */
+  examples: Example[] = EXAMPLES;
+  /** Id del ejemplo seleccionado en el desplegable */
+  selectedExampleId = '';
+
   /** Panel activo en la sección de resultados */
   activeTab: 'tokens' | 'output' | 'diagnostics' | 'semantic' | 'symbols' | 'ast' = 'tokens';
 
@@ -77,6 +83,16 @@ export class AppComponent {
 
   loadExample(): void {
     this.source = EXAMPLE_SOURCE;
+  }
+
+  /** Carga el código del ejemplo seleccionado en el editor */
+  loadSelectedExample(): void {
+    const example = this.examples.find((e) => e.id === this.selectedExampleId);
+    if (example) {
+      this.source = example.source;
+      this.response = null;
+      this.transportError = '';
+    }
   }
 
   clear(): void {
@@ -120,10 +136,6 @@ export class AppComponent {
 
   get output(): string[] {
     return this.response?.output ?? [];
-  }
-
-  get outputText(): string {
-    return (this.response?.output ?? []).join('\n');
   }
 
   get runtimeErrors(): RuntimeErrorDto[] {
